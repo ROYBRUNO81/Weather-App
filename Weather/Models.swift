@@ -8,7 +8,6 @@
 import Foundation
 import SwiftData
 
-/// Represents a geographic location returned by the geocoding API.
 @Model
 class Location: Identifiable, Decodable {
     var lat: Double
@@ -16,19 +15,11 @@ class Location: Identifiable, Decodable {
     var name: String
     var displayName: String
     var address: Address
-    
-    // Unique identifier combining lat and lon.
+
+    // A computed ID is fine if lat/lon is always unique.
     var id: String { "\(lat)_\(lon)" }
-    
-    // Map the JSON keys to the struct’s property names.
-    enum CodingKeys: String, CodingKey {
-        case lat
-        case lon
-        case name
-        case displayName = "display_name"
-        case address
-    }
-    
+
+    // MARK: - Decoding init (required by Decodable)
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.lat = try container.decode(Double.self, forKey: .lat)
@@ -37,17 +28,52 @@ class Location: Identifiable, Decodable {
         self.displayName = try container.decode(String.self, forKey: .displayName)
         self.address = try container.decode(Address.self, forKey: .address)
     }
+
+    // MARK: - Normal init (needed for code-based initialization)
+    init(lat: Double, lon: Double, name: String, displayName: String, address: Address) {
+        self.lat = lat
+        self.lon = lon
+        self.name = name
+        self.displayName = displayName
+        self.address = address
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case lat
+        case lon
+        case name
+        case displayName = "display_name"
+        case address
+    }
 }
 
-/// Represents the address details associated with a location.
-struct Address: Decodable {
+@Model
+class Address: Decodable {
     var city: String?
     var county: String?
     var state: String
     var country: String
     var countryCode: String
-    
-    // Map JSON keys to property names.
+
+    // MARK: - Decoding init
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.state = try container.decode(String.self, forKey: .state)
+        self.country = try container.decode(String.self, forKey: .country)
+        self.countryCode = try container.decode(String.self, forKey: .countryCode)
+        self.city = try container.decodeIfPresent(String.self, forKey: .city)
+        self.county = try container.decodeIfPresent(String.self, forKey: .county)
+    }
+
+    // MARK: - Normal init
+    init(city: String?, county: String?, state: String, country: String, countryCode: String) {
+        self.city = city
+        self.county = county
+        self.state = state
+        self.country = country
+        self.countryCode = countryCode
+    }
+
     enum CodingKeys: String, CodingKey {
         case city
         case county
@@ -56,6 +82,7 @@ struct Address: Decodable {
         case countryCode = "country_code"
     }
 }
+
 
 /// Represents the overall weather information returned by the weather API.
 struct WeatherInfo: Decodable {
