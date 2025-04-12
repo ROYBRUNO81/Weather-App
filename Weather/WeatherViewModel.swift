@@ -12,10 +12,8 @@ import SwiftData
 final class WeatherViewModel: ObservableObject {
     @Published var favorites: [Location] = []
     
-    // Use the PersistenceManager singleton.
     private let persistenceManager: PersistenceManager
     
-    // You may inject a PersistenceManager if needed; by default we use the shared instance.
     init(persistenceManager: PersistenceManager = .shared) {
         self.persistenceManager = persistenceManager
         loadFavorites()

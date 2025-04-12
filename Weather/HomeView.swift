@@ -8,15 +8,16 @@
 import SwiftUI
 import SwiftData
 
+// MARK: HomeView
 struct HomeView: View {
     @EnvironmentObject var viewModel: WeatherViewModel
     @State private var searchQuery: String = ""
-    @State private var selectedLocation: Location? = nil  // For .navigationDestination
+    @State private var selectedLocation: Location? = nil
 
     var body: some View {
         NavigationStack {
             ZStack {
-                // Background Gradient (unchanged)
+                // Background Gradient
                 LinearGradient(
                     gradient: Gradient(colors: [Color.blue, Color(red: 0.9, green: 0.5, blue: 0.9)]),
                     startPoint: .top,
@@ -43,7 +44,6 @@ struct HomeView: View {
                                 do {
                                     if let locationFound = try await APIService.getLocation(query: searchQuery) {
                                         // Trigger navigation by setting selectedLocation.
-                                        // (Here the location is not favorited yet.)
                                         selectedLocation = locationFound
                                     } else {
                                         print("No location found for query: \(searchQuery)")
@@ -104,7 +104,7 @@ struct HomeView: View {
                 // Reload favorites when HomeView appears.
                 viewModel.loadFavorites()
             }
-            // Use .navigationDestination for programmatic navigation.
+            // Use .navigationDestination for navigation.
             .navigationDestination(item: $selectedLocation) { location in
                 LocationDetailView(location: location)
             }
@@ -112,21 +112,22 @@ struct HomeView: View {
     }
 }
 
+// MARK: CustomDivider
 struct CustomDivider: View {
     var body: some View {
         HStack {
             Spacer() // push the divider into the center
             Rectangle()
-                .fill(Color.white.opacity(0.3)) // low opacity
+                .fill(Color.white.opacity(0.3))
                 .frame(height: 1)
-                .frame(maxWidth: .infinity)   // how wide you want the divider
+                .frame(maxWidth: .infinity)
             Spacer()
         }
-        .padding(.horizontal, 16) // top-level horizontal padding
+        .padding(.horizontal, 16)
     }
 }
 
-// MARK: - FavoriteRow View
+// MARK: FavoriteRowView
 struct FavoriteRow: View {
     let location: Location
     
@@ -144,7 +145,7 @@ struct FavoriteRow: View {
                         .font(.subheadline)
                         .foregroundColor(.white)
                     
-                    Spacer()  // Push the temp/ppt group to the right.
+                    Spacer()  // Push the temp/ppt to the right.
                     
                     HStack(spacing: 8) {
                         if let temp = location.currentTemp {
@@ -157,6 +158,11 @@ struct FavoriteRow: View {
                         } else {
                             Text("Ppt: --%")
                         }
+                        if let precip = location.currentPrecip {
+                        Text("PPT: \(precip, specifier: "%.1f") mm")
+                        } else {
+                         Text("Precip: -- mm")
+                        }
                     }
                     .font(.subheadline)
                     .foregroundColor(.white.opacity(0.9))
@@ -167,7 +173,7 @@ struct FavoriteRow: View {
         .padding(.vertical, 6)
     }
     
-    // Computed property based on location's stored currentTemp and currentPpt.
+    // Computed description based on location's stored currentTemp and currentPpt.
     var weatherDescription: String {
         if let temp = location.currentTemp, let ppt = location.currentPpt {
             if ppt >= 40 {

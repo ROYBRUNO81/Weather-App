@@ -15,26 +15,25 @@ struct LocationDetailView: View {
     
     // Computed property to get the appropriate gradient based on current weather.
     private var backgroundGradient: LinearGradient {
-        // If weather info and current weather are available, choose gradient accordingly.
+        // If weather info and current weather are available, choose gradient
         if let current = currentWeather() {
             let gradientColors: [Color] = {
                 if current.precip >= 40 {
                     // Raining gradient: dark blue to gray blue.
                     return [
-                        Color(red: 0/255, green: 0/255, blue: 139/255),    // Dark Blue
-                        Color(red: 119/255, green: 136/255, blue: 153/255)  // Gray Blue
+                        Color(red: 0/255, green: 0/255, blue: 139/255),
+                        Color(red: 119/255, green: 136/255, blue: 153/255)
                     ]
                 } else if current.temp < 50 && current.precip < 40 {
-                    // Sunny gradient: deep blue to sky blue.
                     return [
-                        Color(red: 0/255, green: 49/255, blue: 83/255),     // Deep Blue
-                        Color(red: 135/255, green: 206/255, blue: 235/255)    // Sky Blue
+                        Color(red: 0/255, green: 49/255, blue: 83/255),
+                        Color(red: 135/255, green: 206/255, blue: 235/255)
                     ]
                 }
                 else {
                     return [
-                        Color(red: 50/255, green: 50/255, blue: 150/255),     // Deep Blue
-                        Color(red: 130/255, green: 200/255, blue: 255/255)    // Sky Blue
+                        Color(red: 50/255, green: 50/255, blue: 150/255),
+                        Color(red: 130/255, green: 200/255, blue: 255/255)
                     ]
                 }
             }()
@@ -42,7 +41,7 @@ struct LocationDetailView: View {
                                   startPoint: .top,
                                   endPoint: .bottom)
         } else {
-            // Default to sunny gradient if weather not loaded yet.
+            // Default to sunny gradient if weather not loaded yet
             return LinearGradient(
                 gradient: Gradient(colors: [
                     Color(red: 0/255, green: 49/255, blue: 83/255),
@@ -76,14 +75,16 @@ struct LocationDetailView: View {
                         HStack(spacing: 20) {
                             Text("\(Date(), formatter: DateFormatter.exactHourMinute)")
                                 .foregroundColor(.white)
-                            Text("ppt: \(current.precip)%")
+                            Text("ppt: \(current.precipProbability)%")
+                                .foregroundColor(.white)
+                            Text("PPT: \(current.precip, specifier: "%.1f") mm")
                                 .foregroundColor(.white)
                         }
                     }
                     .padding(.top, 40)
                     .frame(height: 300)
                 } else {
-                    // Loading view if weather data is not loaded yet.
+                    // Loading view if weather data is not loaded yet
                     ProgressView("Loading weather...")
                         .padding()
                         .frame(height: 300)
@@ -99,7 +100,6 @@ struct LocationDetailView: View {
                             .padding([.top, .horizontal])
                         CustomDivider()
                         
-                        // Use indices so we can insert dividers between forecast rows.
                         let items = forecastItems()
                         ForEach(items.indices, id: \.self) { index in
                             let item = items[index]
@@ -112,7 +112,7 @@ struct LocationDetailView: View {
                                 Text("T: \(item.temp, specifier: "%.1f")°")
                                     .foregroundColor(.white)
                                 Spacer()
-                                Text("ppt: \(item.precip)%")
+                                Text("ppt: \(item.precipProbability)%")
                                     .foregroundColor(.white)
                             }
                             .padding(.horizontal)
@@ -169,9 +169,11 @@ struct LocationDetailView: View {
                 if let index = findCurrentHourIndex(in: fetchedWeather) {
                     let newTemp = fetchedWeather.data.temperature[index]
                     let newPpt = fetchedWeather.data.precipitationProbability[index]
+                    let newPrecip = fetchedWeather.data.precipitation[index]
                     // Update the saved location's weather info.
                     location.currentTemp = newTemp
                     location.currentPpt = newPpt
+                    location.currentPrecip = newPrecip
                     PersistenceManager.shared.save()
                     // Refresh favorites in the view model so HomeView reflects the update.
                     viewModel.loadFavorites()
@@ -215,13 +217,13 @@ struct LocationDetailView: View {
     struct CustomDivider: View {
         var body: some View {
             HStack {
-                Spacer()  // Push the divider into the center.
+                Spacer()
                 Rectangle()
                     .fill(Color.white.opacity(0.3))
                     .frame(height: 1)
-                    .frame(maxWidth: 300) // Adjust maximum width as needed
+                    .frame(maxWidth: 300)
                 Spacer()
-            }  // Vertical padding between forecast rows.
+            }
         }
     }
 }
@@ -237,11 +239,11 @@ extension DateFormatter {
     
     static var exactHourMinute: DateFormatter = {
             let formatter = DateFormatter()
-            formatter.dateFormat = "h:mm a" // e.g. "3:15 PM"
+            formatter.dateFormat = "h:mm a"
             return formatter
     }()
     
-    /// Formatter that displays only the hour with AM/PM (e.g., "1PM")
+    /// Formatter that displays only the hour with AM/PM
     static var forecastHour: DateFormatter {
         let formatter = DateFormatter()
         formatter.dateFormat = "ha"

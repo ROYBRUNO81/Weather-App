@@ -7,18 +7,13 @@
 import Foundation
 import SwiftData
 
+// MARK: PersistenceManager
 final class PersistenceManager {
-    // Singleton instance
     static let shared = PersistenceManager()
-    
-    // The ModelContainer manages the storage for our persistent models.
     let container: ModelContainer
-    // The ModelContext is used to perform CRUD operations on our models.
     let context: ModelContext
     
     private init() {
-        // Initialize the container with the models you want to persist.
-        // Ensure that all models (e.g. Location and Address) are annotated with @Model.
         container = try! ModelContainer(for: Location.self)
         context = ModelContext(container)
     }
@@ -35,7 +30,7 @@ final class PersistenceManager {
     /// Fetches all favorite locations currently saved.
     func fetchFavorites() -> [Location] {
         do {
-            // Create a fetch descriptor with any desired sorting.
+            // fetch descriptor with desired sorting
             let fetchDescriptor = FetchDescriptor<Location>(sortBy: [SortDescriptor(\.lat, order: .forward)])
             let favorites = try context.fetch(fetchDescriptor)
             return favorites
@@ -47,7 +42,6 @@ final class PersistenceManager {
     
     /// Inserts a new favorite location into the context and saves the change.
     func insertFavorite(_ location: Location) {
-        // Before inserting, you may want to check that the location is not a duplicate.
         if !fetchFavorites().contains(where: { $0.id == location.id }) {
             context.insert(location)
             save()
@@ -62,7 +56,7 @@ final class PersistenceManager {
         save()
     }
     
-    /// Optionally, clear all favorites (e.g., for debugging purposes).
+    /// Optionally, clear all favorites (or debugging purposes).
     func clearFavorites() {
         let favorites = fetchFavorites()
         for location in favorites {

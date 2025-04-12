@@ -8,6 +8,7 @@
 import Foundation
 import SwiftData
 
+// MARK: Location
 @Model
 class Location: Identifiable, Decodable {
     var lat: Double
@@ -22,11 +23,10 @@ class Location: Identifiable, Decodable {
     var currentPpt: Int?
     var currentPrecip: Double?
 
-    // MARK: - Decoding init (required by Decodable)
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
-        // Decode as String then convert to Double.
+        // Decode as String then convert to Double
         let latString = try container.decode(String.self, forKey: .lat)
         guard let latDouble = Double(latString) else {
             throw DecodingError.dataCorruptedError(forKey: .lat,
@@ -50,7 +50,7 @@ class Location: Identifiable, Decodable {
         self.currentPrecip = nil
     }
 
-    // MARK: - Normal init (needed for code-based initialization)
+    // Normal init
     init(lat: Double, lon: Double, name: String, address: Address, currentTemp: Double? = nil, currentPpt: Int? = nil, currentPrecip: Double? = nil) {
         self.lat = lat
         self.lon = lon
@@ -78,7 +78,6 @@ class Address: Decodable {
     var countryCode: String
 
     // MARK: - Decoding init
-    // MARK: - Decoding initializer
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.city = try container.decodeIfPresent(String.self, forKey: .city)
@@ -108,11 +107,9 @@ class Address: Decodable {
 }
 
 
-/// Represents the overall weather information returned by the weather API.
+/// Represents  overall weather information returned by the weather API
 struct WeatherInfo: Decodable {
-    // The dictionary holding unit definitions for each parameter.
     let hourlyUnits: [String: String]
-    // The actual weather data for the forecast.
     let data: WeatherData
     
     enum CodingKeys: String, CodingKey {
@@ -121,7 +118,7 @@ struct WeatherInfo: Decodable {
     }
 }
 
-/// Represents the detailed weather data (forecast) including the key metrics.
+/// Represents the detailed weather data including the key metrics.
 struct WeatherData: Decodable {
     let time: [Date]
     let temperature: [Double]
@@ -136,7 +133,7 @@ struct WeatherData: Decodable {
     }
 }
 
-/// A custom date formatter to decode date strings from the weather API.
+/// A custom date formatter to decode date strings from the weather API
 extension DateFormatter {
     static let weatherDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -146,21 +143,14 @@ extension DateFormatter {
     }()
 }
 
-/// Create a JSONDecoder configured to decode the weather API's data.
-/// Use this decoder when decoding the JSON response.
+
 func makeWeatherJSONDecoder() -> JSONDecoder {
     let decoder = JSONDecoder()
-    // Use the custom date formatter for the "time" field in WeatherData.
     decoder.dateDecodingStrategy = .formatted(DateFormatter.weatherDateFormatter)
-    // Optional: Convert keys from snake_case to camelCase if you prefer.
-    // decoder.keyDecodingStrategy = .convertFromSnakeCase
     return decoder
 }
 
-/// Create a JSONDecoder for the geocoding API if needed.
-/// If the date fields are not present, the default decoder settings might be sufficient.
 func makeGeocodingJSONDecoder() -> JSONDecoder {
     let decoder = JSONDecoder()
-    // Depending on the API, you might want to adjust strategies here.
     return decoder
 }
