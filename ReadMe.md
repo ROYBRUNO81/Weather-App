@@ -8,12 +8,15 @@ The weatherApp is a simple iOS application, built with SwiftUI and SwiftData tha
   - **Search Field**: Enter a location name.
   - **OK Button**: Triggers geocoding. If a matching location is found, navigates to the detail screen to display the weather.
   - **Favorites List**: Displays saved locations and other details including name, temperature, precipitation probability (ppt), and precipitation - (PPT). Tapping a favorite shows its detailed forecast screen.
+<img src="./home.png" alt="App Screenshot" width="300" height="550"/>
   
 - **Detail Screen**:
   - **Location Name**: Shows a formatted address (city/state) from the geocoding API.
   - **Current Weather**: Displays current temperature (`°F`), precipitation probability (ppt),  and precipitation - (PPT).
   - **12-Hour Forecast**: Lists the hourly temperature and precipitation probability.
   - **Favorite/Unfavorite Button**: Toggles whether the location is stored in the Favorites list.
+  <img src="./location1.png" alt="App Screenshot" width="300" height="550"/>
+  <img src="./location2.png" alt="App Screenshot" width="300" height="550"/>
 
 ## Architecture
 1. **Models**:
