@@ -18,17 +18,23 @@ struct LocationDetailView: View {
         // If weather info and current weather are available, choose gradient accordingly.
         if let current = currentWeather() {
             let gradientColors: [Color] = {
-                if current.precip >= 50 {
+                if current.precip >= 40 {
                     // Raining gradient: dark blue to gray blue.
                     return [
                         Color(red: 0/255, green: 0/255, blue: 139/255),    // Dark Blue
                         Color(red: 119/255, green: 136/255, blue: 153/255)  // Gray Blue
                     ]
-                } else {
+                } else if current.temp < 50 && current.precip < 40 {
                     // Sunny gradient: deep blue to sky blue.
                     return [
                         Color(red: 0/255, green: 49/255, blue: 83/255),     // Deep Blue
                         Color(red: 135/255, green: 206/255, blue: 235/255)    // Sky Blue
+                    ]
+                }
+                else {
+                    return [
+                        Color(red: 50/255, green: 50/255, blue: 150/255),     // Deep Blue
+                        Color(red: 130/255, green: 200/255, blue: 255/255)    // Sky Blue
                     ]
                 }
             }()
@@ -68,7 +74,7 @@ struct LocationDetailView: View {
                             .foregroundColor(.white)
                         
                         HStack(spacing: 20) {
-                            Text("\(current.time, formatter: DateFormatter.shortTime)")
+                            Text("\(Date(), formatter: DateFormatter.exactHourMinute)")
                                 .foregroundColor(.white)
                             Text("ppt: \(current.precip)%")
                                 .foregroundColor(.white)
@@ -91,6 +97,7 @@ struct LocationDetailView: View {
                             .frame(maxWidth: .infinity)
                             .multilineTextAlignment(.center)
                             .padding([.top, .horizontal])
+                        CustomDivider()
                         
                         // Use indices so we can insert dividers between forecast rows.
                         let items = forecastItems()
@@ -147,69 +154,59 @@ struct LocationDetailView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            fetchWeather()
+            fetchWeatherAndUpdate()
         }
     }
-    
+        
     // MARK: - Helper Functions
     
-    /// Simulates fetching weather data from the API.
-    private func fetchWeather() {
+    /// Fetch the current weather using the saved lat/lon and update the saved weather info.
+    private func fetchWeatherAndUpdate() {
         Task {
             do {
                 let fetchedWeather = try await APIService.getWeather(for: location)
                 self.weatherInfo = fetchedWeather
+                if let index = findCurrentHourIndex(in: fetchedWeather) {
+                    let newTemp = fetchedWeather.data.temperature[index]
+                    let newPpt = fetchedWeather.data.precipitationProbability[index]
+                    // Update the saved location's weather info.
+                    location.currentTemp = newTemp
+                    location.currentPpt = newPpt
+                    PersistenceManager.shared.save()
+                    // Refresh favorites in the view model so HomeView reflects the update.
+                    viewModel.loadFavorites()
+                }
             } catch {
                 print("Error fetching weather: \(error)")
             }
         }
     }
-    
-    /// Returns current weather values from the weather info.
+
+    /// Returns the current weather tuple based on the forecast starting at the current hour.
     private func currentWeather() -> (time: Date, temp: Double, precip: Int)? {
-        guard let weatherInfo = weatherInfo else { return nil }
-        guard let index = findCurrentHourIndex(in: weatherInfo) else { return nil }
-        
-        // Make sure index is within array bounds
-        if index < weatherInfo.data.temperature.count,
-           index < weatherInfo.data.precipitationProbability.count {
-            let theTime = weatherInfo.data.time[index]
-            let theTemp = weatherInfo.data.temperature[index]
-            let thePrecip = weatherInfo.data.precipitationProbability[index]
-            return (time: theTime, temp: theTemp, precip: thePrecip)
-        }
-        return nil
+        guard let wi = weatherInfo,
+              let index = findCurrentHourIndex(in: wi) else { return nil }
+        return (wi.data.time[index], wi.data.temperature[index], wi.data.precipitationProbability[index])
     }
     
-    /// Returns forecast items for times from the current hour until 12 hours ahead.
+    /// Returns the next 12 forecast entries (if available) starting from the current hour.
     private func forecastItems() -> [(time: Date, temp: Double, precip: Int)] {
-        guard let weatherInfo = weatherInfo else { return [] }
-        let calendar = Calendar.current
-        let now = Date()
-        // Round down to the start of the current hour.
-        let currentHour = calendar.dateInterval(of: .hour, for: now)!.start
-        let endDate = calendar.date(byAdding: .hour, value: 12, to: currentHour)!
-        
+        guard let wi = weatherInfo,
+              let startIndex = findCurrentHourIndex(in: wi) else { return [] }
+        let endIndex = min(startIndex + 12, wi.data.time.count)
         var items: [(Date, Double, Int)] = []
-        for (index, forecastTime) in weatherInfo.data.time.enumerated() {
-            // Only include forecast items within the desired range.
-            if forecastTime >= currentHour && forecastTime <= endDate {
-                let temp = weatherInfo.data.temperature[index]
-                let precip = weatherInfo.data.precipitationProbability[index]
-                items.append((forecastTime, temp, precip))
-            }
+        for i in startIndex..<endIndex {
+            items.append((wi.data.time[i], wi.data.temperature[i], wi.data.precipitationProbability[i]))
         }
         return items
     }
     
+    /// Finds the index of the current hour in the forecast data.
     private func findCurrentHourIndex(in weatherInfo: WeatherInfo) -> Int? {
         let now = Date()
         let calendar = Calendar.current
-        // Round down to the start of the current hour
-        let thisHour = calendar.dateInterval(of: .hour, for: now)?.start ?? now
-        
-        // Find the first forecast hour >= thisHour
-        return weatherInfo.data.time.firstIndex(where: { $0 >= thisHour })
+        let currentHour = calendar.dateInterval(of: .hour, for: now)?.start ?? now
+        return weatherInfo.data.time.firstIndex(where: { $0 >= currentHour })
     }
     
     struct CustomDivider: View {
@@ -234,6 +231,12 @@ extension DateFormatter {
         formatter.timeStyle = .short
         return formatter
     }
+    
+    static var exactHourMinute: DateFormatter = {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "h:mm a" // e.g. "3:15 PM"
+            return formatter
+    }()
     
     /// Formatter that displays only the hour with AM/PM (e.g., "1PM")
     static var forecastHour: DateFormatter {

@@ -10,14 +10,16 @@ import SwiftData
 
 @Model
 class Location: Identifiable, Decodable {
-    var id: UUID = UUID()
     var lat: Double
     var lon: Double
     var name: String
     var address: Address
+    var id: String { "\(lat)_\(lon)" }
     var displayName: String {
         return "\(name), \(address.state)"
     }
+    var currentTemp: Double?
+    var currentPpt: Int?
 
     // MARK: - Decoding init (required by Decodable)
     required init(from decoder: Decoder) throws {
@@ -42,14 +44,18 @@ class Location: Identifiable, Decodable {
 
             self.name = try container.decode(String.self, forKey: .name)
             self.address = try container.decode(Address.self, forKey: .address)
+            self.currentTemp = nil
+            self.currentPpt = nil
     }
 
     // MARK: - Normal init (needed for code-based initialization)
-    init(lat: Double, lon: Double, name: String, address: Address) {
+    init(lat: Double, lon: Double, name: String, address: Address, currentTemp: Double? = nil, currentPpt: Int? = nil) {
         self.lat = lat
         self.lon = lon
         self.name = name
         self.address = address
+        self.currentTemp = currentTemp
+        self.currentPpt = currentPpt
     }
 
     enum CodingKeys: String, CodingKey {

@@ -16,7 +16,7 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Background Gradient
+                // Background Gradient (unchanged)
                 LinearGradient(
                     gradient: Gradient(colors: [Color.blue, Color(red: 0.2, green: 0.0, blue: 0.5)]),
                     startPoint: .top,
@@ -39,11 +39,11 @@ struct HomeView: View {
                             .padding(.horizontal, 8)
                         
                         Button("OK") {
-                            // Asynchronously call the geocoding API.
                             Task {
                                 do {
                                     if let locationFound = try await APIService.getLocation(query: searchQuery) {
-                                        // Trigger navigation by setting selectedLocation
+                                        // Trigger navigation by setting selectedLocation.
+                                        // (Here the location is not favorited yet.)
                                         selectedLocation = locationFound
                                     } else {
                                         print("No location found for query: \(searchQuery)")
@@ -63,8 +63,7 @@ struct HomeView: View {
                     
                     Spacer()
                     
-                    // Favorites list
-                    // Favorites list
+                    // Favorites List
                     if !viewModel.favorites.isEmpty {
                         ScrollView {
                             VStack(alignment: .leading, spacing: 10) {
@@ -75,7 +74,9 @@ struct HomeView: View {
                                     .multilineTextAlignment(.center)
                                     .padding(.top, 8)
                                 
-                                // We'll iterate over indices so we know when to insert the divider
+                                CustomDivider()
+                                
+                                // Iterate over indices to insert dividers between rows.
                                 ForEach(viewModel.favorites.indices, id: \.self) { index in
                                     let location = viewModel.favorites[index]
                                     
@@ -83,7 +84,7 @@ struct HomeView: View {
                                         FavoriteRow(location: location)
                                     }
                                     
-                                    // Insert the divider if this is not the last favorite
+                                    // Insert the divider if not the last favorite.
                                     if index < viewModel.favorites.count - 1 {
                                         CustomDivider()
                                     }
@@ -96,11 +97,14 @@ struct HomeView: View {
                             .padding(.bottom, 20)
                         }
                     }
-
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
-            // INSTEAD of a hidden link, we use .navigationDestination here:
+            .onAppear {
+                // Reload favorites when HomeView appears.
+                viewModel.loadFavorites()
+            }
+            // Use .navigationDestination for programmatic navigation.
             .navigationDestination(item: $selectedLocation) { location in
                 LocationDetailView(location: location)
             }
@@ -125,86 +129,66 @@ struct CustomDivider: View {
 // MARK: - FavoriteRow View
 struct FavoriteRow: View {
     let location: Location
-    @State private var weatherInfo: WeatherInfo?
     
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
+                // Display Name from saved location.
                 Text(location.displayName)
                     .font(.headline)
                     .foregroundColor(.white)
                 
-                // HStack for weather description on left and temp/ppt on right.
+                // HStack with the weather description on the left and temp/ppt on the right.
                 HStack {
-                    // Weather description on the left.
                     Text(weatherDescription)
                         .font(.subheadline)
                         .foregroundColor(.white)
                     
-                    Spacer()  // Pushes the temp/ppt to the right.
+                    Spacer()  // Push the temp/ppt group to the right.
                     
-                    // Temperature and precipitation info.
-                    if let weatherInfo = weatherInfo,
-                       let temp = weatherInfo.data.temperature.first,
-                       let ppt = weatherInfo.data.precipitationProbability.first {
-                        HStack(spacing: 8) {
+                    HStack(spacing: 8) {
+                        if let temp = location.currentTemp {
                             Text("Temp: \(temp, specifier: "%.0f")°")
-                            Text("Ppt: \(ppt)%")
-                        }
-                        .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.9))
-                    } else {
-                        // Placeholder texts while loading
-                        HStack(spacing: 8) {
+                        } else {
                             Text("Temp: --°")
-                            Text("Precip: --%")
                         }
-                        .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.9))
+                        if let ppt = location.currentPpt {
+                            Text("Ppt: \(ppt)%")
+                        } else {
+                            Text("Ppt: --%")
+                        }
                     }
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.9))
                 }
             }
             Spacer()
         }
         .padding(.vertical, 6)
-        .task {
-            // Fetch weather data when this row appears.
-            do {
-                let fetchedWeather = try await APIService.getWeather(for: location)
-                self.weatherInfo = fetchedWeather
-            } catch {
-                print("Error fetching weather for row: \(error)")
-            }
-        }
     }
     
-    // Computed property for the weather description.
-    private var weatherDescription: String {
-            // Check if data is available.
-        guard let weatherInfo = weatherInfo,
-              let temp = weatherInfo.data.temperature.first,
-              let ppt = weatherInfo.data.precipitationProbability.first else {
-            return "Loading..."
-        }
-        
-        // If precipitation probability is high (>= 50), override with Rainy/Snow.
-        if ppt >= 50 {
-            if temp < 40 {
-                return "Snow"
+    // Computed property based on location's stored currentTemp and currentPpt.
+    var weatherDescription: String {
+        if let temp = location.currentTemp, let ppt = location.currentPpt {
+            if ppt >= 40 {
+                if temp < 20 {
+                    return "Snow"
+                } else {
+                    return "Rainy"
+                }
             } else {
-                return "Rainy"
+                if temp < 20 {
+                    return "Snow"
+                } else if temp < 60 {
+                    return "Cold"
+                } else if temp < 75 {
+                    return "Warm"
+                } else {
+                    return "Sunny"
+                }
             }
         } else {
-            // Otherwise, base description solely on temperature.
-            if temp < 40 {
-                return "Snow"
-            } else if temp < 65 {
-                return "Cold"
-            } else if temp < 75 {
-                return "Warm"
-            } else {
-                return "Sunny"
-            }
+            return "Loading..."
         }
     }
 }
