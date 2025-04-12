@@ -183,20 +183,23 @@ struct LocationDetailView: View {
     }
 
     /// Returns the current weather tuple based on the forecast starting at the current hour.
-    private func currentWeather() -> (time: Date, temp: Double, precip: Int)? {
+    private func currentWeather() -> (time: Date, temp: Double, precipProbability: Int, precip: Double)? {
         guard let wi = weatherInfo,
-              let index = findCurrentHourIndex(in: wi) else { return nil }
-        return (wi.data.time[index], wi.data.temperature[index], wi.data.precipitationProbability[index])
+        let index = findCurrentHourIndex(in: wi) else { return nil }
+        return (wi.data.time[index],
+        wi.data.temperature[index],
+        wi.data.precipitationProbability[index],
+        wi.data.precipitation[index])
     }
     
     /// Returns the next 12 forecast entries (if available) starting from the current hour.
-    private func forecastItems() -> [(time: Date, temp: Double, precip: Int)] {
+    private func forecastItems() -> [(time: Date, temp: Double, precipProbability: Int, precip: Double)] {
         guard let wi = weatherInfo,
               let startIndex = findCurrentHourIndex(in: wi) else { return [] }
         let endIndex = min(startIndex + 12, wi.data.time.count)
-        var items: [(Date, Double, Int)] = []
+        var items: [(Date, Double, Int, Double)] = []
         for i in startIndex..<endIndex {
-            items.append((wi.data.time[i], wi.data.temperature[i], wi.data.precipitationProbability[i]))
+            items.append((wi.data.time[i], wi.data.temperature[i], wi.data.precipitationProbability[i], wi.data.precipitation[i]))
         }
         return items
     }

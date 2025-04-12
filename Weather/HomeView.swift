@@ -18,7 +18,7 @@ struct HomeView: View {
             ZStack {
                 // Background Gradient (unchanged)
                 LinearGradient(
-                    gradient: Gradient(colors: [Color.blue, Color(red: 0.2, green: 0.0, blue: 0.5)]),
+                    gradient: Gradient(colors: [Color.blue, Color(red: 0.9, green: 0.5, blue: 0.9)]),
                     startPoint: .top,
                     endPoint: .bottom
                 )

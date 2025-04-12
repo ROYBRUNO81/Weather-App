@@ -20,42 +20,45 @@ class Location: Identifiable, Decodable {
     }
     var currentTemp: Double?
     var currentPpt: Int?
+    var currentPrecip: Double?
 
     // MARK: - Decoding init (required by Decodable)
     required init(from decoder: Decoder) throws {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-            
-            // Decode as String then convert to Double.
-            let latString = try container.decode(String.self, forKey: .lat)
-            guard let latDouble = Double(latString) else {
-                throw DecodingError.dataCorruptedError(forKey: .lat,
-                                                       in: container,
-                                                       debugDescription: "Expected a Double value for lat but found a string that doesn't convert: \(latString)")
-            }
-            self.lat = latDouble
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        // Decode as String then convert to Double.
+        let latString = try container.decode(String.self, forKey: .lat)
+        guard let latDouble = Double(latString) else {
+            throw DecodingError.dataCorruptedError(forKey: .lat,
+                                                   in: container,
+                                                   debugDescription: "Expected a Double value for lat but found a string that doesn't convert: \(latString)")
+        }
+        self.lat = latDouble
 
-            let lonString = try container.decode(String.self, forKey: .lon)
-            guard let lonDouble = Double(lonString) else {
-                throw DecodingError.dataCorruptedError(forKey: .lon,
-                                                       in: container,
-                                                       debugDescription: "Expected a Double value for lon but found a string that doesn't convert: \(lonString)")
-            }
-            self.lon = lonDouble
+        let lonString = try container.decode(String.self, forKey: .lon)
+        guard let lonDouble = Double(lonString) else {
+            throw DecodingError.dataCorruptedError(forKey: .lon,
+                                                   in: container,
+                                                   debugDescription: "Expected a Double value for lon but found a string that doesn't convert: \(lonString)")
+        }
+        self.lon = lonDouble
 
-            self.name = try container.decode(String.self, forKey: .name)
-            self.address = try container.decode(Address.self, forKey: .address)
-            self.currentTemp = nil
-            self.currentPpt = nil
+        self.name = try container.decode(String.self, forKey: .name)
+        self.address = try container.decode(Address.self, forKey: .address)
+        self.currentTemp = nil
+        self.currentPpt = nil
+        self.currentPrecip = nil
     }
 
     // MARK: - Normal init (needed for code-based initialization)
-    init(lat: Double, lon: Double, name: String, address: Address, currentTemp: Double? = nil, currentPpt: Int? = nil) {
+    init(lat: Double, lon: Double, name: String, address: Address, currentTemp: Double? = nil, currentPpt: Int? = nil, currentPrecip: Double? = nil) {
         self.lat = lat
         self.lon = lon
         self.name = name
         self.address = address
         self.currentTemp = currentTemp
         self.currentPpt = currentPpt
+        self.currentPrecip = currentPrecip
     }
 
     enum CodingKeys: String, CodingKey {
