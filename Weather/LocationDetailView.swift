@@ -56,23 +56,21 @@ struct LocationDetailView: View {
             
             VStack(spacing: 0) {
                 // TOP PORTION: Overlaid text with location and current weather.
-                if let weatherInfo = weatherInfo, let currentWeather = currentWeather() {
+                if let current = currentWeather() {
                     VStack(spacing: 8) {
                         Text(location.displayName)
                             .font(.title)
                             .bold()
                             .foregroundColor(.white)
                         
-                        Text("\(currentWeather.temp, specifier: "%.0f")°")
+                        Text("\(current.temp, specifier: "%.0f")°")
                             .font(.system(size: 80, weight: .bold))
                             .foregroundColor(.white)
                         
                         HStack(spacing: 20) {
-                            if let currentTime = weatherInfo.data.time.first {
-                                Text("\(currentTime, formatter: DateFormatter.shortTime)")
-                                    .foregroundColor(.white)
-                            }
-                            Text("ppt: \(currentWeather.precip)%")
+                            Text("\(current.time, formatter: DateFormatter.shortTime)")
+                                .foregroundColor(.white)
+                            Text("ppt: \(current.precip)%")
                                 .foregroundColor(.white)
                         }
                     }
@@ -85,18 +83,20 @@ struct LocationDetailView: View {
                         .frame(height: 300)
                 }
                 
-                Divider()
-                    .background(Color.white.opacity(0.8))
-                
-                // FORECAST SCROLL VIEW
-                Text("Forecast")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .padding(.vertical, 5)
-                
                 ScrollView {
                     VStack(alignment: .leading, spacing: 10) {
-                        ForEach(forecastItems(), id: \.time) { item in
+                        Text("12H Forecast")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .multilineTextAlignment(.center)
+                            .padding([.top, .horizontal])
+                        
+                        // Use indices so we can insert dividers between forecast rows.
+                        let items = forecastItems()
+                        ForEach(items.indices, id: \.self) { index in
+                            let item = items[index]
+                            
                             HStack {
                                 Text("\(item.time, formatter: DateFormatter.forecastHour)")
                                     .frame(width: 80, alignment: .leading)
@@ -109,9 +109,18 @@ struct LocationDetailView: View {
                                     .foregroundColor(.white)
                             }
                             .padding(.horizontal)
+                            
+                            // Insert divider if not the last element.
+                            if index < items.count - 1 {
+                                CustomDivider()
+                            }
                         }
+                        .padding(.bottom, 10)
                     }
-                    .padding(.bottom)
+                    .background(Color.white.opacity(0.15))
+                    .cornerRadius(12)
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
                 }
                 
                 Spacer()
@@ -128,10 +137,10 @@ struct LocationDetailView: View {
                         .font(.headline)
                         .padding()
                         .frame(maxWidth: .infinity)
-                        .background(Color.gray.opacity(0.2))
+                        .background(Color.white.opacity(0.1))
                         .cornerRadius(8)
                         .padding(.horizontal)
-                        .foregroundColor(Color(red: 0.2, green: 0.0, blue: 0.3))
+                        .foregroundColor(Color(red: 0.3, green: 0.0, blue: 0.4))
                 }
                 .padding(.bottom)
             }
@@ -146,40 +155,30 @@ struct LocationDetailView: View {
     
     /// Simulates fetching weather data from the API.
     private func fetchWeather() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            let now = Date()
-            let forecastTimes = (0..<24).compactMap {
-                Calendar.current.date(byAdding: .hour, value: $0, to: now)
+        Task {
+            do {
+                let fetchedWeather = try await APIService.getWeather(for: location)
+                self.weatherInfo = fetchedWeather
+            } catch {
+                print("Error fetching weather: \(error)")
             }
-            // For simulation, temperature is fixed and precipitation chance varies.
-            let dummyWeatherData = WeatherData(
-                time: forecastTimes,
-                temperature: Array(repeating: 70.0, count: forecastTimes.count),
-                precipitationProbability: forecastTimes.enumerated().map { index, _ in
-                    index % 3 == 0 ? 60 : 20
-                },
-                precipitation: Array(repeating: 0.1, count: forecastTimes.count)
-            )
-            let dummyWeatherInfo = WeatherInfo(
-                hourlyUnits: ["temperature": "°F",
-                              "precipitation_probability": "%",
-                              "precipitation": "mm"],
-                data: dummyWeatherData
-            )
-            self.weatherInfo = dummyWeatherInfo
         }
     }
     
     /// Returns current weather values from the weather info.
-    private func currentWeather() -> (temp: Double, precip: Int)? {
-        guard let weatherInfo = weatherInfo,
-              !weatherInfo.data.temperature.isEmpty,
-              !weatherInfo.data.precipitationProbability.isEmpty
-        else {
-            return nil
+    private func currentWeather() -> (time: Date, temp: Double, precip: Int)? {
+        guard let weatherInfo = weatherInfo else { return nil }
+        guard let index = findCurrentHourIndex(in: weatherInfo) else { return nil }
+        
+        // Make sure index is within array bounds
+        if index < weatherInfo.data.temperature.count,
+           index < weatherInfo.data.precipitationProbability.count {
+            let theTime = weatherInfo.data.time[index]
+            let theTemp = weatherInfo.data.temperature[index]
+            let thePrecip = weatherInfo.data.precipitationProbability[index]
+            return (time: theTime, temp: theTemp, precip: thePrecip)
         }
-        // Use the first element as the current hour's data
-        return (weatherInfo.data.temperature[0], weatherInfo.data.precipitationProbability[0])
+        return nil
     }
     
     /// Returns forecast items for times from the current hour until 12 hours ahead.
@@ -202,6 +201,29 @@ struct LocationDetailView: View {
         }
         return items
     }
+    
+    private func findCurrentHourIndex(in weatherInfo: WeatherInfo) -> Int? {
+        let now = Date()
+        let calendar = Calendar.current
+        // Round down to the start of the current hour
+        let thisHour = calendar.dateInterval(of: .hour, for: now)?.start ?? now
+        
+        // Find the first forecast hour >= thisHour
+        return weatherInfo.data.time.firstIndex(where: { $0 >= thisHour })
+    }
+    
+    struct CustomDivider: View {
+        var body: some View {
+            HStack {
+                Spacer()  // Push the divider into the center.
+                Rectangle()
+                    .fill(Color.white.opacity(0.3))
+                    .frame(height: 1)
+                    .frame(maxWidth: 300) // Adjust maximum width as needed
+                Spacer()
+            }  // Vertical padding between forecast rows.
+        }
+    }
 }
 
 // MARK: - DateFormatter Extension
@@ -222,10 +244,7 @@ extension DateFormatter {
 }
 
 // MARK: - Preview
-#Preview {
-    let container = try! ModelContainer(for: Location.self)
-    let context = ModelContext(container)
-    
+#Preview {    
     // Dummy data for preview
     let dummyAddress = Address(
         city: "Philadelphia",
@@ -238,12 +257,11 @@ extension DateFormatter {
         lat: 39.9526,
         lon: -75.1652,
         name: "Philadelphia",
-        displayName: "Philadelphia, PA",
         address: dummyAddress
     )
     
     NavigationStack {
         LocationDetailView(location: dummyLocation)
-            .environmentObject(WeatherViewModel(modelContext: context))
+            .environmentObject(WeatherViewModel())
     }
 }

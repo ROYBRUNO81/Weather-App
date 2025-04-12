@@ -10,31 +10,45 @@ import SwiftData
 
 @Model
 class Location: Identifiable, Decodable {
+    var id: UUID = UUID()
     var lat: Double
     var lon: Double
     var name: String
-    var displayName: String
     var address: Address
-
-    // A computed ID is fine if lat/lon is always unique.
-    var id: String { "\(lat)_\(lon)" }
+    var displayName: String {
+        return "\(name), \(address.state)"
+    }
 
     // MARK: - Decoding init (required by Decodable)
     required init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.lat = try container.decode(Double.self, forKey: .lat)
-        self.lon = try container.decode(Double.self, forKey: .lon)
-        self.name = try container.decode(String.self, forKey: .name)
-        self.displayName = try container.decode(String.self, forKey: .displayName)
-        self.address = try container.decode(Address.self, forKey: .address)
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            
+            // Decode as String then convert to Double.
+            let latString = try container.decode(String.self, forKey: .lat)
+            guard let latDouble = Double(latString) else {
+                throw DecodingError.dataCorruptedError(forKey: .lat,
+                                                       in: container,
+                                                       debugDescription: "Expected a Double value for lat but found a string that doesn't convert: \(latString)")
+            }
+            self.lat = latDouble
+
+            let lonString = try container.decode(String.self, forKey: .lon)
+            guard let lonDouble = Double(lonString) else {
+                throw DecodingError.dataCorruptedError(forKey: .lon,
+                                                       in: container,
+                                                       debugDescription: "Expected a Double value for lon but found a string that doesn't convert: \(lonString)")
+            }
+            self.lon = lonDouble
+
+            self.name = try container.decode(String.self, forKey: .name)
+            self.address = try container.decode(Address.self, forKey: .address)
     }
 
     // MARK: - Normal init (needed for code-based initialization)
-    init(lat: Double, lon: Double, name: String, displayName: String, address: Address) {
+    init(lat: Double, lon: Double, name: String, address: Address) {
         self.lat = lat
         self.lon = lon
         self.name = name
-        self.displayName = displayName
         self.address = address
     }
 
@@ -42,7 +56,6 @@ class Location: Identifiable, Decodable {
         case lat
         case lon
         case name
-        case displayName = "display_name"
         case address
     }
 }
@@ -56,13 +69,15 @@ class Address: Decodable {
     var countryCode: String
 
     // MARK: - Decoding init
+    // MARK: - Decoding initializer
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.state = try container.decode(String.self, forKey: .state)
-        self.country = try container.decode(String.self, forKey: .country)
-        self.countryCode = try container.decode(String.self, forKey: .countryCode)
         self.city = try container.decodeIfPresent(String.self, forKey: .city)
         self.county = try container.decodeIfPresent(String.self, forKey: .county)
+        self.state = try container.decode(String.self, forKey: .state)
+        self.country = try container.decode(String.self, forKey: .country)
+        // Use decodeIfPresent so that if "country_code" is missing, we default to an empty string.
+        self.countryCode = try container.decodeIfPresent(String.self, forKey: .countryCode) ?? ""
     }
 
     // MARK: - Normal init
