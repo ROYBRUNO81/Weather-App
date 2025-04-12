@@ -1,21 +1,17 @@
 # WeatherApp
 
 ## Overview
-WeatherApp is a simple iOS application built with SwiftUI and SwiftData that allows users to:
-1. Search for a location by name (city, address, etc.).
-2. Retrieve its exact latitude and longitude via the Nominatim geocoding API.
-3. Display current and 12-hour forecast weather data for that location using the Open-Meteo weather API.
-4. Mark/unmark locations as Favorites, which are stored persistently on the device.
+The weatherApp is a simple iOS application, built with SwiftUI and SwiftData that allows users to search for a location by name (city, address, etc.) and display current and 12-hour forecast weather data for that location.
 
 ## Features
 - **Home Screen**:
-  - **Search Field**: Enter a location name (e.g., "Philadelphia", "London", "New Jersey").
+  - **Search Field**: Enter a location name.
   - **OK Button**: Triggers geocoding. If a matching location is found, navigates to the detail screen to display the weather.
-  - **Favorites List**: Displays saved locations (including name, temperature, precipitation probability). Tapping a favorite shows its detailed forecast screen.
+  - **Favorites List**: Displays saved locations and other details including name, temperature, precipitation probability (ppt), and precipitation - (PPT). Tapping a favorite shows its detailed forecast screen.
   
 - **Detail Screen**:
-  - **Location Name**: Shows a formatted address (city/state) from the geocoding API, not just the raw input.
-  - **Current Weather**: Displays current temperature (`°F`) and precipitation probability.
+  - **Location Name**: Shows a formatted address (city/state) from the geocoding API.
+  - **Current Weather**: Displays current temperature (`°F`), precipitation probability (ppt),  and precipitation - (PPT).
   - **12-Hour Forecast**: Lists the hourly temperature and precipitation probability.
   - **Favorite/Unfavorite Button**: Toggles whether the location is stored in the Favorites list.
 
@@ -42,7 +38,7 @@ WeatherApp is a simple iOS application built with SwiftUI and SwiftData that all
 2. **Running the App**:
    - Clone this repository or download the ZIP.
    - Open `Weather.xcodeproj` in Xcode 15 or newer.
-   - Select an iOS Simulator or a real device (iOS 17+ recommended).
+   - Select an iOS Simulator or a real device (iOS 15+ recommended).
    - Press **Run**.
 
 3. **Searching for a Location**:
@@ -61,10 +57,4 @@ WeatherApp is a simple iOS application built with SwiftUI and SwiftData that all
 ## API References
 - **Geocoding**: [Nominatim OpenStreetMap](https://nominatim.org/release-docs/latest/api/Search/)
 - **Weather**: [Open-Meteo](https://open-meteo.com/)
-
-## License
-This project is for academic use (iOS course assignment). All third-party libraries and APIs belong to their respective owners.
-
-## Contact
-For any questions or feedback, contact [your_email@example.com](mailto:your_email@example.com).
 
